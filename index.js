@@ -26,15 +26,18 @@ function getTimeOff(callback) {
           body += d;
       });
       response.on('end', function() {
-
+        console.log(body);
           // Data reception is done, do whatever with it!
           timeOff = JSON.parse(body);
           callback();
       });
-  });
+  }).on('error', (e) => {
+    console.error(e);
+  });;
 }
 
 function filterTimeOff(callback) {
+  console.log('filter');
   timeOff.forEach( function(element, index) {
     var inRange = false;
     var startDate = element.start_date;
@@ -64,6 +67,7 @@ function getPeople(callback) {
         'Authorization' : 'Bearer ' + process.env.FLOAT_ACCESS_TOKEN
       }
     };
+    console.log(options);
     https.get(options, function(response) {
         // Continuously update stream with data
         var body = '';
@@ -71,7 +75,6 @@ function getPeople(callback) {
             body += d;
         });
         response.on('end', function() {
-
             // Data reception is done, do whatever with it!
             person = JSON.parse(body);
             element.person = person;
@@ -82,7 +85,9 @@ function getPeople(callback) {
               callback();
             }
         });
-    });
+    }).on('error', (e) => {
+      console.error(e);
+    });;
   });
 }
 
