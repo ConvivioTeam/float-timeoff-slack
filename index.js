@@ -7,8 +7,9 @@ var send = slack({
 var moment = require('moment');
 var now = moment();
 
-var timeOff = null;
-var message = null;
+var timeOff;
+var people;
+var message;
 
 function getTimeOff(callback) {
   var options = {
@@ -26,7 +27,6 @@ function getTimeOff(callback) {
           body += d;
       });
       response.on('end', function() {
-        console.log(body);
           // Data reception is done, do whatever with it!
           timeOff = JSON.parse(body);
           callback();
@@ -37,7 +37,6 @@ function getTimeOff(callback) {
 }
 
 function filterTimeOff(callback) {
-  console.log('filter');
   timeOff.forEach( function(element, index) {
     var inRange = false;
     var startDate = element.start_date;
@@ -56,38 +55,43 @@ function filterTimeOff(callback) {
 }
 
 function getPeople(callback) {
-  var counter = 0;
-  timeOff.forEach( function(element, index) {
-    var id = element.people_ids[0];
-    var options = {
-      host: 'api.float.com',
-      port: 443,
-      path: '/v3/people/' + id,
+  var options = {
+    host: 'api.float.com',
+    port: 443,
+    path: '/v3/people',
       headers: {
         'Authorization' : 'Bearer ' + process.env.FLOAT_ACCESS_TOKEN
       }
     };
-    console.log(options);
     https.get(options, function(response) {
         // Continuously update stream with data
         var body = '';
         response.on('data', function(d) {
-            body += d;
+          body += d;
         });
         response.on('end', function() {
-            // Data reception is done, do whatever with it!
-            person = JSON.parse(body);
-            element.person = person;
-            timeOff[index] = element;
-            counter++;
-
-            if(counter === timeOff.length) {
-              callback();
-            }
+          // Data reception is done, do whatever with it!
+          people = JSON.parse(body);
+          callback();
         });
     }).on('error', (e) => {
       console.error(e);
-    });;
+    });
+}
+
+function addPeopleToTimeOff(callback) {
+  var counter = 0;
+  timeOff.forEach( function(element, index) {
+    var id = element.people_ids[0];
+     element.person = people.find(person => {
+      return person.people_id === id;
+    })
+    timeOff[index] = element;
+    counter++;
+    
+    if(counter === timeOff.length) {
+      callback();
+    }
   });
 }
 
@@ -132,11 +136,13 @@ function init() {
   getTimeOff(function() {
     filterTimeOff(function() {
       getPeople(function() {
-        compileSlackMessage(function() {
-          postToSlack(function() {
-            console.log('Done!');
+        addPeopleToTimeOff(function() {
+          compileSlackMessage(function() {
+            postToSlack(function() {
+              console.log('Done!');
+            })
           })
-        })
+        });
       })
     });
   });
