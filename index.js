@@ -9,7 +9,7 @@ var now = moment();
 
 var timeOff;
 var people;
-var message;
+var message = '';
 
 function getTimeOff(callback) {
   var options = {
@@ -103,10 +103,10 @@ function compileSlackMessage(callback) {
     }
   });
   if (count > 1) {
-    message = 'There are ' + count + ' people off work today\n';
+    message += 'There are ' + count + ' people off work today\n';
   }
   else if (count > 0) {
-    message = 'There is ' + count + ' person off work today\n';
+    message += 'There is ' + count + ' person off work today\n';
   }
   message += generatePersonList();
   callback();
@@ -131,7 +131,7 @@ function generatePersonList() {
 }
 
 function postToSlack(callback) {
-  if (message == null) {
+  if (message == '') {
     console.log('Nothing to post');
     callback();
     return;
@@ -147,7 +147,6 @@ function init() {
     filterTimeOff(function() {
       getPeople(function() {
         addPeopleToTimeOff(function() {
-          console.log(timeOff);
           compileSlackMessage(function() {
             postToSlack(function() {
               console.log('Done!');
