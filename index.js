@@ -15,7 +15,7 @@ function getTimeOff(callback) {
   var options = {
     host: 'api.float.com',
     port: 443,
-    path: '/v3/timeoffs',
+    path: '/v3/timeoffs?sort=-start_date',
     headers: {
       'Authorization' : 'Bearer ' + process.env.FLOAT_ACCESS_TOKEN
     }
@@ -41,15 +41,15 @@ function filterTimeOff(callback) {
     var inRange = false;
     var startDate = element.start_date;
     var endDate = element.end_date;
-    if(
-      (moment(now).isBefore(endDate, 'day') || moment(now).isSame(endDate, 'day'))
+    // if today is before end date and after start date
+    if((moment(now).isSameOrBefore(endDate, 'day'))
       &&
-      (moment(now).isAfter(startDate, 'day') || moment(now).isSame(startDate, 'day'))
-    ) {
+      (moment(now).isSameOrAfter(startDate, 'day'))) {
       inRange = true;
+      console.log('Start Date: ' + startDate);
+      console.log('End Date: ' + endDate);
     }
     element.in_range = inRange;
-    timeOff[index] = element;
   });
   callback();
 }
@@ -102,22 +102,32 @@ function compileSlackMessage(callback) {
       count++;
     }
   });
-  if(count > 1) {
-    message = 'There are ' + count + ' people off work today:';
+  if (count > 1) {
+    message = 'There are ' + count + ' people off work today\n';
   }
-  if (count > 0) {
-    message = 'There is ' + count + ' person off work today:';
-    timeOff.forEach( function(element, index) {
-      if(element.in_range) {
-        personName = element.person.name;
-        message += ' ' + personName + '.';
+  else if (count > 0) {
+    message = 'There is ' + count + ' person off work today\n';
+  }
+  message += generatePersonList();
+  callback();
+}
+
+function generatePersonList() {
+  var message = '';
+  timeOff.forEach( function(element, index) {
+    if(element.in_range) {
+      personName = element.person.name;
+      message += '*' + personName +'*';
+      if(element.timeoff_notes !== '') {
+        message += ' ' + element.timeoff_notes;
       }
-    });
-    callback();
-  }
-  else {
-    callback();
-  }
+      else {
+        message += ' ' + element.timeoff_type_name;
+      }
+      message += '\n';
+    }
+  });
+  return message;
 }
 
 function postToSlack(callback) {
@@ -137,6 +147,7 @@ function init() {
     filterTimeOff(function() {
       getPeople(function() {
         addPeopleToTimeOff(function() {
+          console.log(timeOff);
           compileSlackMessage(function() {
             postToSlack(function() {
               console.log('Done!');
