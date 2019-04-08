@@ -11,6 +11,16 @@ var timeOff;
 var people;
 var message = '';
 
+function isAWeekDay(callback) {
+  var weekday = moment().isoWeekday();
+  if(weekday < 6) {
+    callback();
+  }
+  else {
+    console.log('It\'s the weekend!');
+  }
+}
+
 function getTimeOff(callback) {
   var options = {
     host: 'api.float.com',
@@ -143,19 +153,21 @@ function postToSlack(callback) {
 }
 
 function init() {
-  getTimeOff(function() {
-    filterTimeOff(function() {
-      getPeople(function() {
-        addPeopleToTimeOff(function() {
-          compileSlackMessage(function() {
-            postToSlack(function() {
-              console.log('Done!');
+  isAWeekDay(function() {
+    getTimeOff(function() {
+      filterTimeOff(function() {
+        getPeople(function() {
+          addPeopleToTimeOff(function() {
+            compileSlackMessage(function() {
+              postToSlack(function() {
+                console.log('Done!');
+              })
             })
-          })
-        });
-      })
+          });
+        })
+      });
     });
-  });
+  })
 };
 
 init();
