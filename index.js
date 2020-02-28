@@ -98,7 +98,7 @@ function addPeopleToTimeOff(callback) {
     })
     timeOff[index] = element;
     counter++;
-    
+
     if(counter === timeOff.length) {
       callback();
     }
@@ -133,6 +133,9 @@ function generatePersonList() {
       }
       else {
         message += ' ' + element.timeoff_type_name;
+      }
+      if(!element.full_day) {
+        message += ' (' + element.hours + ' hours)';
       }
       message += '\n';
     }
